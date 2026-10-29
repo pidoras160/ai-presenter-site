@@ -3,6 +3,7 @@ from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
+from pptx.enum.shapes import MSO_SHAPE  # <-- ИСПРАВЛЕНИЕ: Добавлен импорт для фигур
 import io
 
 # ==========================================
@@ -62,7 +63,7 @@ def check_password():
     return True
 
 # ==========================================
-# ⚙️ ЛОГИКА ГЕНЕРАЦИИ PPTX
+# ⚙️ ЛОГИКА ГЕНЕРАЦИИ PPTX (Исправленная версия)
 # ==========================================
 class PPTXGenerator:
     def __init__(self):
@@ -75,14 +76,10 @@ class PPTXGenerator:
         }
 
     def generate_content(self, topic):
-        """
-        Здесь можно подключить настоящий ИИ (OpenAI/Gemini), 
-        пока что это умная заглушка, которая делает красивую структуру.
-        """
+        """Заглушка для генерации текста."""
         return [
             {"type": "title", "text": f"{topic.upper()}", "sub": "Сгенерировано нейросетью"},
-            {"type": "bullets", "head": "Введение", "items": ["Что такое эта тема?", "Почему она важна сейчас?", "Цель нашего исследования"]},
-            {"type": "image_placeholder", "head": "Ключевой визуал", "desc": "[Здесь должна быть картинка по теме]"},
+            {"type": "bullets", "head": "Введение", "items": ["Что такое эта тема?", "Почему она важна сейчас?"]},
             {"type": "bullets", "head": "Основные факты", "items": ["Факт №1: Самый интересный", "Факт №2: Статистика или цифры", "Факт №3: Историческая справка"]},
             {"type": "quote", "head": "Мнение эксперта", "text": f"«{topic} — это явление, которое изменит наше понимание мира.»", "author": "Анонимный источник"},
             {"type": "conclusion", "head": "Заключение", "items": ["Итоги проведены", "Перспективы развития", "Спасибо за внимание!"]}
@@ -162,7 +159,7 @@ class PPTXGenerator:
                 ar.font.color.rgb = acc_col
 
             else:
-                # Стандартные слайды (Заголовок + Список/Картинка)
+                # Стандартные слайды (Заголовок + Список)
                 # Заголовок слайда
                 hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12.3), Inches(1))
                 htf = hb.text_frame
@@ -173,38 +170,25 @@ class PPTXGenerator:
                 hr.font.bold = True
                 hr.font.color.rgb = acc_col
                 
-                # Линия-разделитель
-                line = slide.shapes.add_shape(1, Inches(0.5), Inches(1.2), Inches(12.3), Pt(3)) # MSO_SHAPE.RECTANGLE approx
+                # Линия-разделитель (ТЕПЕРЬ РАБОТАЕТ!)
+                line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.5), Inches(1.2), Inches(12.3), Pt(3))
                 line.fill.solid()
                 line.fill.fore_color.rgb = self.colors["primary"]
                 line.line.fill.background()
 
-                if slide_def['type'] == 'bullets':
+                if slide_def['type'] == 'bullets' or slide_def['type'] == 'conclusion':
                     lb = slide.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(11.5), Inches(5))
                     ltf = lb.text_frame
                     ltf.word_wrap = True
                     
-                    for j, item in enumerate(slide_def['items']):
+                    items = slide_def.get('items', [])
+                    for j, item in enumerate(items):
                         para = ltf.paragraphs[j] if j < len(ltf.paragraphs) else ltf.add_paragraph()
                         para.space_after = Pt(15)
                         r = para.add_run()
                         r.text = f"• {item}"
                         r.font.size = Pt(24)
                         r.font.color.rgb = txt_col
-                        
-                elif slide_def['type'] == 'image_placeholder':
-                    img_box = slide.shapes.add_shape(1, Inches(3), Inches(2), Inches(7), Inches(4)) # Rectangle
-                    img_box.fill.solid()
-                    img_box.fill.fore_color.rgb = RGBColor(0xDDDDDD)
-                    img_box.line.color.rgb = self.colors["primary"]
-                    
-                    caption = slide.shapes.add_textbox(Inches(3), Inches(6.2), Inches(7), Inches(0.5))
-                    cp = caption.text_frame.paragraphs[0]
-                    cp.alignment = PP_ALIGN.CENTER
-                    cr = cp.add_run()
-                    cr.text = slide_def['desc']
-                    cr.font.size = Pt(18)
-                    cr.font.color.rgb = self.colors["dark_text"]
 
         bytes_io = io.BytesIO()
         prs.save(bytes_io)
