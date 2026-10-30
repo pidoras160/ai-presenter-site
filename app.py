@@ -6,16 +6,11 @@ from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 import io
 import random
-import json
-import requests # Для запросов к AI
 
 # ==========================================
-# 🔐 НАСТРОЙКИ ДОСТУПА & GOOGLE GEMINI AI
+# 🔐 ПАРОЛЬ (Можешь менять)
 # ==========================================
-ACCESS_CODE = "67676767" 
-# ✅ ТВОЙ НОВЫЙ КЛЮЧ УЖЕ ВСТАВЛЕН СЮДА:
-GEMINI_API_KEY = "AQ.Ab8RN6KgJcV5Qvk9QkB0WTa6ClMIRvzL3uMoK5JK0-BryDhANA"
-MODEL_NAME = "gemini-1.5-flash" 
+ACCESS_CODE = "67676766" 
 
 def check_password():
     if 'authenticated' not in st.session_state:
@@ -49,99 +44,69 @@ def check_password():
         
         st.markdown(f"""
         <div class="login-container">
-            <h1 class="login-title">🧠 NEURAL DECK PRO</h1>
-            <p class="login-subtitle">Powered by Google Gemini 1.5 Flash</p>
+            <h1 class="login-title">🧠 NEURAL DECK LOCAL</h1>
+            <p class="login-subtitle">Offline Mode • No API Keys Needed</p>
         </div>
         """, unsafe_allow_html=True)
         
         code_input = st.text_input("", type="password", placeholder="••••••••", label_visibility="collapsed")
         
-        if st.button("AUTHENTICATE SYSTEM", use_container_width=True):
+        if st.button("ENTER SYSTEM", use_container_width=True):
             if code_input == ACCESS_CODE:
                 st.session_state.authenticated = True
                 st.rerun()
             else:
-                st.error("❌ Access Denied.")
+                st.error("❌ Wrong Password.")
         return False
     return True
 
 # ==========================================
-# 🤖 МОДУЛЬ ИНТЕЛЛЕКТУАЛЬНОГО ГЕНЕРАТОРА (FIXED FOR NEW KEYS)
+# 📚 БАЗА ЗНАНИЙ (Вместо внешнего ИИ)
 # ==========================================
-class AIBrain:
-    def __init__(self, api_key):
-        self.api_key = api_key
-        self.model_name = MODEL_NAME
-        # URL без параметра key=, так как он теперь в заголовках
-        self.url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent"
-        
-    def generate_structure(self, topic, num_slides):
-        """Запрашивает у Gemini реальную структуру презентации."""
-        
-        prompt = f"""
-        You are an expert presentation designer. Create a detailed outline for a PowerPoint presentation about "{topic}".
-        
-        Requirements:
-        1. Total slides: {num_slides}.
-        2. Format: Return ONLY valid JSON array. No markdown backticks, no explanations outside the JSON.
-        3. Each object must have these keys:
-           - "type": one of ["title", "intro", "stats", "comparison", "quote", "timeline", "conclusion", "bullets"]
-           - "head": string (short title for the slide)
-           - "content": specific data depending on type:
-             * For "title": {{"text": "...", "sub": "..."}}
-             * For "intro": {{"body": "long paragraph explaining context"}}
-             * For "stats": {{"stat_1_val": "XX%", "stat_1_label": "...", "stat_2_val": "...", ...}}
-             * For "comparison": {{"left_title": "...", "right_title": "...", "left_items": [...], "right_items": [...]}}
-             * For "quote": {{"text": "...", "author": "..."}}
-             * For "timeline": {{"phase_1": "...", "phase_2": "...", "phase_3": "..."}}
-             * For others: {{"items": ["point 1", "point 2", "point 3"]}}
-        
-        Make the content engaging, factual, and professional. Use English language.
-        """
-
-        payload = {
-            "contents": [{
-                "parts": [{"text": prompt}]
-            }],
-            "generationConfig": {
-                "temperature": 0.7,
-                "responseMimeType": "application/json" 
-            }
+class LocalBrain:
+    def __init__(self):
+        self.topics_db = {
+            "наполеон": [
+                {"type": "title", "head": "Наполеон Бонапарт", "content": {"text": "НАПОЛЕОН БОНАПАРТ", "sub": "Император Франции и покоритель Европы"}},
+                {"type": "intro", "head": "Ранние годы", "content": {"body": "Наполеон родился в 1769 году на острове Корсика всего через год после того, как остров был продан Французскому королевству Генуэзской республикой. Его семья принадлежала к низшему дворянству. Благодаря стипендии он поступил в военную школу Бриенн, а затем в Парижскую военную академию. Уже в 24 года он стал генералом благодаря своим талантам в артиллерии и стратегии."}},
+                {"type": "stats", "head": "Военные достижения", "content": {"stat_1_val": "~60", "stat_1_label": "Выигранных крупных сражений", "stat_2_val": "1804", "stat_2_label": "Год коронации императором", "stat_3_val": "1M+", "stat_3_label": "Жертв наполеоновских войн"}},
+                {"type": "comparison", "head": "Сильные и слабые стороны", "content": {"left_title": "Гениальность", "right_title": "Ошибки", "left_items": ["Быстрое принятие решений", "Реформа законодательства (Кодекс)", "Лояльность солдат"], "right_items": ["Чрезмерная амбициозность", "Провал русской кампании", "Отказ от дипломатии"]}},
+                {"type": "quote", "head": "Философия власти", "content": {"text": "«История — это ложь, в которой согласились все», — говорил он. Но его Кодекс гражданских прав до сих пор является основой права многих стран мира.", "author": "Наполеон Бонапарт"}},
+                {"type": "conclusion", "head": "Наследие", "content": {"items": ["Изменил политическую карту Европы навсегда", "Распространил идеи революции за пределы Франции", "Показал силу личной воли и интеллекта"]} },
+                {"type": "bullets", "head": "Интересные факты", "content": {"items": ["Боялся кошек (по легенде)", "Любил простую еду: курицу с картофелем", "Его рост был средним для того времени (169 см)"]} }
+            ],
+            "космос": [
+                {"type": "title", "head": "Тайны Вселенной", "content": {"text": "ТАЙНЫ КОСМОСА", "sub": "Путешествие за горизонт событий"}},
+                {"type": "intro", "head": "Что такое Вселенная?", "content": {"body": "Вселенная — это бесконечное пространство, включающее все планеты, звезды, галактики и даже время. Возраст Вселенной оценивается примерно в 13.8 миллиардов лет. Мы знаем лишь малую часть того, что там находится: темная материя и темная энергия составляют более 95% всей массы-энергии вселенной."}},
+                {"type": "stats", "head": "Масштабы непостижимы", "content": {"stat_1_val": "2 трлн", "stat_1_label": "Галактик во Вселенной", "stat_2_val": "100 млрд", "stat_2_label": "Звезд только в Млечном Пути", "stat_3_val": "93 млрд", "stat_3_label": "Световых лет диаметр наблюдаемой Вселенной"}},
+                {"type": "timeline", "head": "Эволюция звезд", "content": {"phase_1": "Рождение в туманностях", "phase_2": "Главная последовательность (как Солнце)", "phase_3": "Взрыв сверхновой или белый карлик"}},
+                {"type": "quote", "head": "Взгляд в будущее", "content": {"text": "«Где-то что-то невероятное ждет, чтобы быть открытым».", "author": "Карл Саган"}},
+                {"type": "conclusion", "head": "Перспективы человечества", "content": {"items": ["Колонизация Марса к 2050 году", "Поиск внеземной жизни", "Межзвездные перелеты на двигателях нового типа"]} }
+            ],
+            "default": [
+                {"type": "title", "head": "Новая Тема", "content": {"text": "АНАЛИЗ ТЕМЫ", "sub": "Структурированный подход к изучению вопроса"}},
+                {"type": "intro", "head": "Введение", "content": {"body": "Данная презентация посвящена глубокому анализу выбранной темы. Мы рассмотрим исторические предпосылки, текущее состояние дел и перспективы развития. Цель работы — выявить ключевые факторы влияния и предложить практические рекомендации."}},
+                {"type": "stats", "head": "Ключевые показатели", "content": {"stat_1_val": "85%", "stat_1_label": "Успешность внедрения", "stat_2_val": "+12%", "stat_2_label": "Рост эффективности", "stat_3_val": "5 лет", "stat_3_label": "Срок окупаемости"}},
+                {"type": "comparison", "head": "SWOT-Анализ", "content": {"left_title": "Сильные стороны", "right_title": "Угрозы", "left_items": ["Инновационный потенциал", "Квалифицированные кадры", "Устойчивый бренд"], "right_items": ["Конкуренция рынка", "Регуляторные риски", "Изменчивость спроса"]}},
+                {"type": "quote", "head": "Экспертное мнение", "content": {"text": "«Будущее принадлежит тем, кто верит в красоту своей мечты и готов работать ради нее».", "author": "Элеонора Рузвельт"}},
+                {"type": "conclusion", "head": "Заключение", "content": {"items": ["Тема требует дальнейшего изучения", "Необходимо привлечение инвестиций", "Разработка стратегического плана действий"]} }
+            ]
         }
 
-        try:
-            # ИСПРАВЛЕНИЕ: Передаем ключ через заголовок x-goog-api-key
-            headers = {
-                "x-goog-api-key": self.api_key,
-                "Content-Type": "application/json"
-            }
-            
-            response = requests.post(self.url, headers=headers, json=payload, timeout=30)
-            response.raise_for_status()
-            result = response.json()
-            
-            # Парсим ответ модели
-            ai_content_str = result['candidates'][0]['content']['parts'][0]['text']
-            
-            # Иногда модель оборачивает JSON в ```json ... ```, убираем это
-            clean_json = ai_content_str.strip()
-            if clean_json.startswith("```"):
-                lines = clean_json.split('\n')
-                clean_json = '\n'.join(lines[1:-1]) 
-                
-            data = json.loads(clean_json)
-            
-            # Проверяем, что вернулся список слайдов
-            if isinstance(data, list):
-                return data
-            elif isinstance(data, dict) and "slides" in data:
-                return data["slides"]
-            else:
-                raise ValueError("Invalid structure returned from AI")
-                
-        except Exception as e:
-            st.warning(f"AI Error: {str(e)}. Falling back to template mode.")
-            return None
+    def get_content(self, topic):
+        """Выбирает лучшую тему из базы или использует шаблон."""
+        t_lower = topic.lower()
+        if "наполеон" in t_lower or "bonaparte" in t_lower:
+            return self.topics_db["наполеон"]
+        elif "космос" in t_lower or "space" in t_lower or "вселенная" in t_lower:
+            return self.topics_db["космос"]
+        else:
+            # Универсальный шаблон для любой другой темы
+            slides = self.topics_db["default"].copy()
+            # Меняем заголовки на название пользователя
+            slides[0]['content']['text'] = topic.upper()
+            slides[0]['head'] = topic
+            return slides
 
 # ==========================================
 # 🎨 ДИЗАЙН-СИСТЕМА (РАНДОМНАЯ)
@@ -203,7 +168,6 @@ class AdvancedPPTXBuilder:
         if data.get('type') not in ['title', 'quote']:
             self.add_decorative_elements(slide)
 
-        # Безопасное получение данных из словаря (чтобы избежать KeyError)
         content = data.get('content', {})
         head_text = data.get('head', '')
         
@@ -376,9 +340,9 @@ class AdvancedPPTXBuilder:
         return bytes_io.getvalue()
 
 # ==========================================
-# 🎨 ИНТЕРФЕЙС STREAMLIT (NEXT GEN)
+# 🎨 ИНТЕРФЕЙС STREAMLIT
 # ==========================================
-st.set_page_config(page_title="Neural Deck Pro", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="Neural Deck Local", page_icon="🧠", layout="wide")
 
 st.markdown("""
 <style>
@@ -420,10 +384,10 @@ st.markdown("""
 if check_password():
     with st.sidebar:
         st.header("⚙️ Control Panel")
-        st.write("**Engine:** Google Gemini 1.5 Flash")
-        st.success("✅ Connected")
+        st.write("**Mode:** Offline Database")
+        st.success("✅ Ready")
         st.divider()
-        st.caption("System Status: Online")
+        st.caption("No internet required for generation")
         if st.button("Logout"):
             st.session_state.authenticated = False
             st.rerun()
@@ -432,7 +396,7 @@ if check_password():
         st.session_state.messages = []
         init_msg = {
             "role": "assistant", 
-            "content": "Hello! I am your Neural Deck Architect powered by Google Gemini.\n\nPlease specify:\n1. **Topic** (e.g., Quantum Computing)\n2. **Number of Slides** (e.g., 8)\n\nI will ask the AI brain to write unique content and design it beautifully."
+            "content": "Hello! I am your Neural Deck Architect.\n\nI have built-in knowledge about:\n1. **Napoleon Bonaparte**\n2. **Space & Universe**\n3. **General Business Topics**\n\nJust type a topic (e.g., 'Napoleon') and number of slides!"
         }
         st.session_state.messages.append(init_msg)
 
@@ -463,7 +427,7 @@ if check_password():
         except:
             slides_count = 6
             
-        if slides_count < 3 or slides_count > 15:
+        if slides_count < 3 or slides_count > 10:
             slides_count = 6
 
         user_display_text = f"**Topic:** {topic}\n**Slides:** {slides_count}"
@@ -475,23 +439,21 @@ if check_password():
 
         with st.chat_message("assistant", avatar="🧠"):
             status = st.empty()
-            status.spinner("🧠 Asking Google Gemini for content structure...")
+            status.spinner("🧠 Searching local database...")
             
-            # Вызываем реальный ИИ
-            ai_brain = AIBrain(GEMINI_API_KEY)
-            structure_data = ai_brain.generate_structure(topic, slides_count)
+            brain = LocalBrain()
+            structure_data = brain.get_content(topic)
             
-            # Если ИИ упал или вернул None, используем запасной вариант (Template Mode)
-            if structure_data is None:
-                status.info("Using fallback template due to AI error.")
-                # Простой фолбэк
-                structure_data = [
-                    {"type": "title", "head": topic, "content": {"text": topic.upper(), "sub": "Fallback Mode"}},
-                    {"type": "bullets", "head": "Overview", "content": {"items": ["Point 1", "Point 2", "Point 3"]}},
-                    {"type": "conclusion", "head": "Summary", "content": {"items": ["Done."]}}
-                ]
+            # Обрезаем или дополняем до нужного количества
+            if len(structure_data) > slides_count:
+                structure_data = structure_data[:slides_count]
+            elif len(structure_data) < slides_count:
+                # Добавляем пустые слайды если нужно больше
+                extra_needed = slides_count - len(structure_data)
+                for _ in range(extra_needed):
+                    structure_data.append({"type": "bullets", "head": "Additional Info", "content": {"items": ["More details coming soon..."]}})
             
-            status.spinner("🎨 Applying dynamic theming engine...")
+            status.spinner("🎨 Rendering beautiful slides...")
             
             builder = AdvancedPPTXBuilder()
             for slide_def in structure_data:
@@ -501,7 +463,7 @@ if check_password():
             
             filename = f"{topic.replace(' ', '_')}_{builder.theme.style_name}.pptx"
             
-            result_text = f"✅ **Generation Complete!**\n\nI used **Real AI (Google Gemini)** to write the content for **'{topic}'**.\nVisual Theme: **{builder.theme.style_name}**.\nTotal Slides: **{len(structure_data)}**.\n\nClick below to download:"
+            result_text = f"✅ **Generation Complete!**\n\nCreated presentation for **'{topic}'** using internal logic.\nVisual Theme: **{builder.theme.style_name}**.\nTotal Slides: **{len(structure_data)}**.\n\nClick below to download:"
             
             status.markdown(f'<div class="bot-msg-container">{result_text.replace(chr(10), "<br>")}</div>', unsafe_allow_html=True)
             
