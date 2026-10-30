@@ -10,7 +10,7 @@ import random
 # ==========================================
 # 🔐 ПАРОЛЬ (Можешь менять)
 # ==========================================
-ACCESS_CODE = "67676766" 
+ACCESS_CODE = "67676767" 
 
 def check_password():
     if 'authenticated' not in st.session_state:
@@ -44,19 +44,19 @@ def check_password():
         
         st.markdown(f"""
         <div class="login-container">
-            <h1 class="login-title">🧠 NEURAL DECK LOCAL</h1>
-            <p class="login-subtitle">Offline Mode • No API Keys Needed</p>
+            <h1 class="login-title">🧠 НЕЙРОННАЯ ПРЕЗЕНТАЦИЯ</h1>
+            <p class="login-subtitle">Автономный режим • Без ключей API</p>
         </div>
         """, unsafe_allow_html=True)
         
         code_input = st.text_input("", type="password", placeholder="••••••••", label_visibility="collapsed")
         
-        if st.button("ENTER SYSTEM", use_container_width=True):
+        if st.button("ВОЙТИ В СИСТЕМУ", use_container_width=True):
             if code_input == ACCESS_CODE:
                 st.session_state.authenticated = True
                 st.rerun()
             else:
-                st.error("❌ Wrong Password.")
+                st.error("❌ Неверный пароль.")
         return False
     return True
 
@@ -114,11 +114,11 @@ class LocalBrain:
 class DesignTheme:
     def __init__(self):
         self.palettes = [
-            {"name": "Cyberpunk Neon", "bg": RGBColor(0x1A, 0x1A, 0x2E), "text": RGBColor(0xFF, 0xFF, 0xFF), "accent": RGBColor(0x00, 0xF0, 0xFF), "secondary": RGBColor(0xFF, 0x00, 0x7F)},
-            {"name": "Corporate Clean", "bg": RGBColor(0xF0, 0xF4, 0xF8), "text": RGBColor(0x1A, 0x23, 0x7E), "accent": RGBColor(0x00, 0x7B, 0xFF), "secondary": RGBColor(0x6C, 0x75, 0x8A)},
-            {"name": "Nature Organic", "bg": RGBColor(0xE8, 0xF5, 0xE9), "text": RGBColor(0x1B, 0x5E, 0x20), "accent": RGBColor(0x4C, 0xAF, 0x50), "secondary": RGBColor(0x81, 0xC7, 0x84)},
-            {"name": "Sunset Warmth", "bg": RGBColor(0xFFF3E0), "text": RGBColor(0xBF, 0x36, 0x0C), "accent": RGBColor(0xFF, 0x6D, 0x00), "secondary": RGBColor(0xFF, 0xAB, 0x40)},
-            {"name": "Dark Luxury", "bg": RGBColor(0x12, 0x12, 0x12), "text": RGBColor(0xE0, 0xE0, 0xE0), "accent": RGBColor(0xD4, 0xAF, 0x37), "secondary": RGBColor(0x8B, 0x00, 0x00)}
+            {"name": "Киберпанк", "bg": RGBColor(0x1A, 0x1A, 0x2E), "text": RGBColor(0xFF, 0xFF, 0xFF), "accent": RGBColor(0x00, 0xF0, 0xFF), "secondary": RGBColor(0xFF, 0x00, 0x7F)},
+            {"name": "Корпоративный", "bg": RGBColor(0xF0, 0xF4, 0xF8), "text": RGBColor(0x1A, 0x23, 0x7E), "accent": RGBColor(0x00, 0x7B, 0xFF), "secondary": RGBColor(0x6C, 0x75, 0x8A)},
+            {"name": "Природный", "bg": RGBColor(0xE8, 0xF5, 0xE9), "text": RGBColor(0x1B, 0x5E, 0x20), "accent": RGBColor(0x4C, 0xAF, 0x50), "secondary": RGBColor(0x81, 0xC7, 0x84)},
+            {"name": "Закат", "bg": RGBColor(0xFFF3E0), "text": RGBColor(0xBF, 0x36, 0x0C), "accent": RGBColor(0xFF, 0x6D, 0x00), "secondary": RGBColor(0xFF, 0xAB, 0x40)},
+            {"name": "Темная роскошь", "bg": RGBColor(0x12, 0x12, 0x12), "text": RGBColor(0xE0, 0xE0, 0xE0), "accent": RGBColor(0xD4, 0xAF, 0x37), "secondary": RGBColor(0x8B, 0x00, 0x00)}
         ]
         self.fonts = ["Arial Black", "Impact", "Segoe UI Bold", "Verdana", "Georgia"]
         
@@ -131,7 +131,7 @@ class DesignTheme:
         self.style_name = palette["name"]
 
 # ==========================================
-# ⚙️ ДВИЖОК PPTX (STABLE VERSION)
+# ⚙️ ДВИЖОК PPTX (ИСПРАВЛЕННАЯ ВЕРСИЯ)
 # ==========================================
 class AdvancedPPTXBuilder:
     def __init__(self):
@@ -198,7 +198,7 @@ class AdvancedPPTXBuilder:
             hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
             hp = hb.text_frame.paragraphs[0]
             hr = hp.add_run()
-            hr.text = head_text or "Introduction"
+            hr.text = head_text or "Введение"
             hr.font.size = Pt(40)
             hr.font.bold = True
             hr.font.color.rgb = self.theme.accent_color
@@ -215,7 +215,7 @@ class AdvancedPPTXBuilder:
             hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
             hp = hb.text_frame.paragraphs[0]
             hr = hp.add_run()
-            hr.text = head_text or "Key Metrics"
+            hr.text = head_text or "Ключевые метрики"
             hr.font.size = Pt(40)
             hr.font.bold = True
             hr.font.color.rgb = self.theme.accent_color
@@ -247,7 +247,7 @@ class AdvancedPPTXBuilder:
             hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
             hp = hb.text_frame.paragraphs[0]
             hr = hp.add_run()
-            hr.text = head_text or "Analysis"
+            hr.text = head_text or "Анализ"
             hr.font.size = Pt(40)
             hr.font.bold = True
             hr.font.color.rgb = self.theme.accent_color
@@ -255,7 +255,7 @@ class AdvancedPPTXBuilder:
             l_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.5), Inches(1.5), Inches(6), Inches(5.5))
             l_box.fill.solid(); l_box.fill.fore_color.rgb = RGBColor(0xFFFFFF); l_box.shadow.inherit = False
             lt_head = l_box.text_frame.paragraphs[0]
-            lt_head.text = content.get('left_title', 'Pros')
+            lt_head.text = content.get('left_title', 'Плюсы')
             lt_head.font.size = Pt(24); lt_head.font.bold = True; lt_head.font.color.rgb = RGBColor(0x2E, 0x7D, 0x32)
             for item in content.get('left_items', []):
                 para = l_box.text_frame.add_paragraph()
@@ -265,7 +265,7 @@ class AdvancedPPTXBuilder:
             r_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.8), Inches(1.5), Inches(6), Inches(5.5))
             r_box.fill.solid(); r_box.fill.fore_color.rgb = RGBColor(0xFFFFFF); r_box.shadow.inherit = False
             rt_head = r_box.text_frame.paragraphs[0]
-            rt_head.text = content.get('right_title', 'Cons')
+            rt_head.text = content.get('right_title', 'Минусы')
             rt_head.font.size = Pt(24); rt_head.font.bold = True; rt_head.font.color.rgb = RGBColor(0xC6, 0x28, 0x28)
             for item in content.get('right_items', []):
                 para = r_box.text_frame.add_paragraph()
@@ -285,14 +285,14 @@ class AdvancedPPTXBuilder:
             ap = ab.text_frame.paragraphs[0]
             ap.alignment = PP_ALIGN.RIGHT
             ar = ap.add_run()
-            ar.text = f"— {content.get('author', 'Unknown')}"
+            ar.text = f"— {content.get('author', 'Неизвестно')}"
             ar.font.size = Pt(20); ar.font.bold = True; ar.font.color.rgb = self.theme.accent_color
 
         elif data['type'] == 'timeline':
             hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
             hp = hb.text_frame.paragraphs[0]
             hr = hp.add_run()
-            hr.text = head_text or "Roadmap"
+            hr.text = head_text or "Дорожная карта"
             hr.font.size = Pt(40); hr.font.bold = True; hr.font.color.rgb = self.theme.accent_color
             
             line_y = Inches(4)
@@ -304,7 +304,10 @@ class AdvancedPPTXBuilder:
             
             for phase, x_pos in zip(phases, x_positions):
                 dot = slide.shapes.add_shape(MSO_SHAPE.OVAL, x_pos - Inches(0.2), line_y - Inches(0.2), Inches(0.4), Inches(0.4))
-                dot.fill.solid(); dot.fill.fore_color.rgb = self.theme.accent_color; dot.line.color.rgb = self.theme.bg_color; dot.line.width = Pt(3)
+                dot.fill.solid(); dot.fill.fore_color.rgb = self.theme.accent_color
+                # ИСПРАВЛЕНИЕ: Добавлена настройка цвета линии для кружка
+                dot.line.color.rgb = self.theme.bg_color 
+                dot.line.width = Pt(3)
                 
                 tb_phase = slide.shapes.add_textbox(x_pos - Inches(1.5), line_y + Inches(0.5), Inches(3), Inches(1))
                 tp = tb_phase.text_frame.paragraphs[0]
@@ -317,7 +320,7 @@ class AdvancedPPTXBuilder:
             hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
             hp = hb.text_frame.paragraphs[0]
             hr = hp.add_run()
-            hr.text = head_text or "Details"
+            hr.text = head_text or "Детали"
             hr.font.size = Pt(40); hr.font.bold = True; hr.font.color.rgb = self.theme.accent_color
             
             lb = slide.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(11.5), Inches(5))
@@ -340,9 +343,9 @@ class AdvancedPPTXBuilder:
         return bytes_io.getvalue()
 
 # ==========================================
-# 🎨 ИНТЕРФЕЙС STREAMLIT
+# 🎨 ИНТЕРФЕЙС STREAMLIT (РУССКИЙ ЯЗЫК)
 # ==========================================
-st.set_page_config(page_title="Neural Deck Local", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="Нейронная Презентация", page_icon="🧠", layout="wide")
 
 st.markdown("""
 <style>
@@ -383,101 +386,8 @@ st.markdown("""
 
 if check_password():
     with st.sidebar:
-        st.header("⚙️ Control Panel")
-        st.write("**Mode:** Offline Database")
-        st.success("✅ Ready")
+        st.header("⚙️ Панель управления")
+        st.write("**Режим:** Автономная база данных")
+        st.success("✅ Система готова")
         st.divider()
-        st.caption("No internet required for generation")
-        if st.button("Logout"):
-            st.session_state.authenticated = False
-            st.rerun()
-
-    if 'messages' not in st.session_state:
-        st.session_state.messages = []
-        init_msg = {
-            "role": "assistant", 
-            "content": "Hello! I am your Neural Deck Architect.\n\nI have built-in knowledge about:\n1. **Napoleon Bonaparte**\n2. **Space & Universe**\n3. **General Business Topics**\n\nJust type a topic (e.g., 'Napoleon') and number of slides!"
-        }
-        st.session_state.messages.append(init_msg)
-
-    for message in st.session_state.messages:
-        role_class = "user-msg-container" if message["role"] == "user" else "bot-msg-container"
-        avatar = "👤" if message["role"] == "user" else "🧠"
-        
-        with st.chat_message(message["role"], avatar=avatar):
-            st.markdown(f'<div class="{role_class}">{message["content"].replace(chr(10), "<br>")}</div>', unsafe_allow_html=True)
-            
-            if "file_name" in message:
-                st.download_button(
-                    label=f"📥 Download '{message['file_name']}'",
-                    data=message["file_bytes"],
-                    file_name=message["file_name"],
-                    mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                )
-
-    prompt = st.chat_input("Enter Topic | Slides Count...")
-
-    if prompt:
-        parts = prompt.split('|')
-        topic = parts[0].strip() if len(parts) > 0 else "General Overview"
-        slides_count_str = parts[1].strip() if len(parts) > 1 else "6"
-        
-        try:
-            slides_count = int(slides_count_str)
-        except:
-            slides_count = 6
-            
-        if slides_count < 3 or slides_count > 10:
-            slides_count = 6
-
-        user_display_text = f"**Topic:** {topic}\n**Slides:** {slides_count}"
-        
-        user_msg = {"role": "user", "content": user_display_text}
-        st.session_state.messages.append(user_msg)
-        with st.chat_message("user", avatar="👤"):
-            st.markdown(f'<div class="user-msg-container">{user_display_text.replace(chr(10), "<br>")}</div>', unsafe_allow_html=True)
-
-        with st.chat_message("assistant", avatar="🧠"):
-            status = st.empty()
-            status.spinner("🧠 Searching local database...")
-            
-            brain = LocalBrain()
-            structure_data = brain.get_content(topic)
-            
-            # Обрезаем или дополняем до нужного количества
-            if len(structure_data) > slides_count:
-                structure_data = structure_data[:slides_count]
-            elif len(structure_data) < slides_count:
-                # Добавляем пустые слайды если нужно больше
-                extra_needed = slides_count - len(structure_data)
-                for _ in range(extra_needed):
-                    structure_data.append({"type": "bullets", "head": "Additional Info", "content": {"items": ["More details coming soon..."]}})
-            
-            status.spinner("🎨 Rendering beautiful slides...")
-            
-            builder = AdvancedPPTXBuilder()
-            for slide_def in structure_data:
-                builder.build_slide(slide_def)
-                
-            file_bytes = builder.save_to_bytes()
-            
-            filename = f"{topic.replace(' ', '_')}_{builder.theme.style_name}.pptx"
-            
-            result_text = f"✅ **Generation Complete!**\n\nCreated presentation for **'{topic}'** using internal logic.\nVisual Theme: **{builder.theme.style_name}**.\nTotal Slides: **{len(structure_data)}**.\n\nClick below to download:"
-            
-            status.markdown(f'<div class="bot-msg-container">{result_text.replace(chr(10), "<br>")}</div>', unsafe_allow_html=True)
-            
-            btn = st.download_button(
-                label=f"📥 Get Your Smart Deck ({filename})",
-                data=file_bytes,
-                file_name=filename,
-                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            )
-            
-            bot_msg = {
-                "role": "assistant",
-                "content": result_text,
-                "file_bytes": file_bytes,
-                "file_name": filename
-            }
-            st.session_state.messages.append(bot_msg)
+        st.caption("Для генерации интернет не требуется
