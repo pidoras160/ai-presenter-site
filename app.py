@@ -5,417 +5,498 @@ from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 import io
+import random
+import json
+import requests # Для запросов к AI
 
 # ==========================================
-# 🔐 НАСТРОЙКИ ДОСТУПА
+# 🔐 НАСТРОЙКИ ДОСТУПА & GOOGLE GEMINI AI
 # ==========================================
 ACCESS_CODE = "67676767" 
+# ✅ ТВОЙ КЛЮЧ УЖЕ ВСТАВЛЕН СЮДА:
+GEMINI_API_KEY = "AQ.Ab8RN6KgJcV5Qvk9QkB0WTa6ClMIRvzL3uMoK5JK0-BryDhANA"
+MODEL_NAME = "gemini-1.5-flash" # Самая быстрая и умная бесплатная модель
 
 def check_password():
-    """Экран входа с красивым дизайном."""
     if 'authenticated' not in st.session_state:
         st.session_state.authenticated = False
     
     if not st.session_state.authenticated:
-        # CSS для экрана логина
         st.markdown("""
         <style>
         .login-container {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
-            padding: 50px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            text-align: center;
-            max-width: 400px;
-            margin: 100px auto;
-            border: 1px solid #333;
+            background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+            padding: 50px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            text-align: center; max-width: 450px; margin: 80px auto;
+            border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(10px);
         }
-        .login-title {
-            color: #FF6B35;
-            font-size: 2rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .login-subtitle {
-            color: #aaa;
-            font-size: 1rem;
-            margin-bottom: 30px;
-        }
+        .login-title { color: #fff; font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; margin-bottom: 10px;}
+        .login-subtitle { color: #a0aec0; font-size: 1rem; margin-bottom: 30px; }
         input[type="password"] {
-            width: 100%;
-            padding: 15px;
-            margin-top: 10px;
-            border-radius: 10px;
-            border: none;
-            background: #333;
-            color: white;
-            font-size: 1.2rem;
-            text-align: center;
-            letter-spacing: 5px;
+            width: 100%; padding: 15px; border-radius: 12px; border: none;
+            background: rgba(255,255,255,0.1); color: white; font-size: 1.2rem;
+            text-align: center; letter-spacing: 8px; transition: all 0.3s;
         }
         button[kind="primary"] {
-            background-color: #FF6B35 !important;
-            color: white !important;
-            border: none !important;
-            padding: 15px 30px !important;
-            border-radius: 10px !important;
-            font-weight: bold !important;
-            cursor: pointer !important;
-            transition: transform 0.2s ease !important;
-            margin-top: 20px;
-        }
-        button[kind="primary"]:hover {
-            transform: scale(1.05) !important;
-            background-color: #e65c29 !important;
+            background: linear-gradient(90deg, #FF6B35 0%, #F7971E 100%) !important;
+            color: white !important; border: none !important; padding: 15px 30px !important;
+            border-radius: 12px !important; font-weight: bold !important; cursor: pointer !important;
+            transition: transform 0.2s, box-shadow 0.2s !important; margin-top: 20px; width: 100%;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4) !important;
         }
         </style>
         """, unsafe_allow_html=True)
         
         st.markdown(f"""
         <div class="login-container">
-            <h1 class="login-title">🔒 AI Presenter Pro</h1>
-            <p class="login-subtitle">Введите секретный код доступа</p>
+            <h1 class="login-title">🧠 NEURAL DECK PRO</h1>
+            <p class="login-subtitle">Powered by Google Gemini 1.5 Flash</p>
         </div>
         """, unsafe_allow_html=True)
         
         code_input = st.text_input("", type="password", placeholder="••••••••", label_visibility="collapsed")
         
-        if st.button("ВОЙТИ В СИСТЕМУ", use_container_width=True):
+        if st.button("AUTHENTICATE SYSTEM", use_container_width=True):
             if code_input == ACCESS_CODE:
                 st.session_state.authenticated = True
                 st.rerun()
             else:
-                st.error("❌ Неверный код! Попробуйте снова.")
+                st.error("❌ Access Denied.")
         return False
     return True
 
 # ==========================================
-# ⚙️ ЛОГИКА ГЕНЕРАЦИИ PPTX (PRO VERSION)
+# 🤖 МОДУЛЬ ИНТЕЛЛЕКТУАЛЬНОГО ГЕНЕРАТОРА (GOOGLE BRAIN)
 # ==========================================
-class PPTXGenerator:
-    def __init__(self):
-        # Цветовая палитра "Modern Tech"
-        self.colors = {
-            "primary": RGBColor(0x1A, 0x23, 0x7E), # Deep Blue
-            "accent": RGBColor(0xFF, 0x6B, 0x35),  # Vibrant Orange
-            "bg_light": RGBColor(0xF8, 0xF9, 0xFA), # Off White
-            "bg_dark": RGBColor(0x1E, 0x1E, 0x2E),   # Dark Gray for contrast
-            "white": RGBColor(0xFF, 0xFF, 0xFF),
-            "text_main": RGBColor(0x2D, 0x37, 0x48),
-            "text_muted": RGBColor(0x6C, 0x75, 0x8A)
+class AIBrain:
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.model_name = MODEL_NAME
+        # Используем официальный REST API endpoint
+        self.url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={api_key}"
+        
+    def generate_structure(self, topic, num_slides):
+        """Запрашивает у Gemini реальную структуру презентации."""
+        
+        prompt = f"""
+        You are an expert presentation designer. Create a detailed outline for a PowerPoint presentation about "{topic}".
+        
+        Requirements:
+        1. Total slides: {num_slides}.
+        2. Format: Return ONLY valid JSON array. No markdown backticks, no explanations outside the JSON.
+        3. Each object must have these keys:
+           - "type": one of ["title", "intro", "stats", "comparison", "quote", "timeline", "conclusion", "bullets"]
+           - "head": string (short title for the slide)
+           - "content": specific data depending on type:
+             * For "title": {{"text": "...", "sub": "..."}}
+             * For "intro": {{"body": "long paragraph explaining context"}}
+             * For "stats": {{"stat_1_val": "XX%", "stat_1_label": "...", "stat_2_val": "...", ...}}
+             * For "comparison": {{"left_title": "...", "right_title": "...", "left_items": [...], "right_items": [...]}}
+             * For "quote": {{"text": "...", "author": "..."}}
+             * For "timeline": {{"phase_1": "...", "phase_2": "...", "phase_3": "..."}}
+             * For others: {{"items": ["point 1", "point 2", "point 3"]}}
+        
+        Make the content engaging, factual, and professional. Use English language.
+        """
+
+        payload = {
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }],
+            "generationConfig": {
+                "temperature": 0.7,
+                "responseMimeType": "application/json" # Требование чистого JSON от Gemini
+            }
         }
 
-    def generate_content(self, topic):
-        """Генерирует структуру слайдов."""
-        return [
-            {"type": "title", "text": f"{topic.upper()}", "sub": "Интеллектуальная презентация • 2026"},
-            {"type": "bullets", "head": "Введение", "items": ["Актуальность темы", "Цели исследования", "Методология"]},
-            {"type": "two_col", "head": "Анализ ситуации", "left_title": "Сильные стороны", "right_title": "Зоны роста", "left_items": ["Технологичность", "Быстрая адаптация"], "right_items": ["Высокая стоимость", "Нехватка кадров"]},
-            {"type": "quote", "head": "Мнение эксперта", "text": f"«{topic} — это не просто тренд, а фундамент будущего индустрии.»", "author": "Dr. Alex Smith, CEO FutureTech"},
-            {"type": "conclusion", "head": "Заключение", "items": ["Резюме ключевых идей", "Практические рекомендации", "Перспективы развития"]}
+        try:
+            response = requests.post(self.url, headers={"Content-Type": "application/json"}, json=payload, timeout=30)
+            response.raise_for_status()
+            result = response.json()
+            
+            # Парсим ответ модели
+            ai_content_str = result['candidates'][0]['content']['parts'][0]['text']
+            
+            # Иногда модель оборачивает JSON в ```json ... ```, убираем это
+            clean_json = ai_content_str.strip()
+            if clean_json.startswith("```"):
+                lines = clean_json.split('\n')
+                clean_json = '\n'.join(lines[1:-1]) # Удаляем первые и последние строки с ```
+                
+            data = json.loads(clean_json)
+            
+            # Проверяем, что вернулся список слайдов
+            if isinstance(data, list):
+                return data
+            elif isinstance(data, dict) and "slides" in data:
+                return data["slides"]
+            else:
+                raise ValueError("Invalid structure returned from AI")
+                
+        except Exception as e:
+            st.warning(f"AI Error: {str(e)}. Falling back to template mode.")
+            return None # Вернем None, если ошибка сети или формата
+
+# ==========================================
+# 🎨 ДИЗАЙН-СИСТЕМА (РАНДОМНАЯ)
+# ==========================================
+class DesignTheme:
+    def __init__(self):
+        self.palettes = [
+            {"name": "Cyberpunk Neon", "bg": RGBColor(0x1A, 0x1A, 0x2E), "text": RGBColor(0xFF, 0xFF, 0xFF), "accent": RGBColor(0x00, 0xF0, 0xFF), "secondary": RGBColor(0xFF, 0x00, 0x7F)},
+            {"name": "Corporate Clean", "bg": RGBColor(0xF0, 0xF4, 0xF8), "text": RGBColor(0x1A, 0x23, 0x7E), "accent": RGBColor(0x00, 0x7B, 0xFF), "secondary": RGBColor(0x6C, 0x75, 0x8A)},
+            {"name": "Nature Organic", "bg": RGBColor(0xE8, 0xF5, 0xE9), "text": RGBColor(0x1B, 0x5E, 0x20), "accent": RGBColor(0x4C, 0xAF, 0x50), "secondary": RGBColor(0x81, 0xC7, 0x84)},
+            {"name": "Sunset Warmth", "bg": RGBColor(0xFFF3E0), "text": RGBColor(0xBF, 0x36, 0x0C), "accent": RGBColor(0xFF, 0x6D, 0x00), "secondary": RGBColor(0xFF, 0xAB, 0x40)},
+            {"name": "Dark Luxury", "bg": RGBColor(0x12, 0x12, 0x12), "text": RGBColor(0xE0, 0xE0, 0xE0), "accent": RGBColor(0xD4, 0xAF, 0x37), "secondary": RGBColor(0x8B, 0x00, 0x00)} # Gold & Red
         ]
+        self.fonts = ["Arial Black", "Impact", "Segoe UI Bold", "Verdana", "Georgia"]
+        
+        palette = random.choice(self.palettes)
+        self.bg_color = palette["bg"]
+        self.text_color = palette["text"]
+        self.accent_color = palette["accent"]
+        self.secondary_color = palette["secondary"]
+        self.main_font = random.choice(self.fonts)
+        self.style_name = palette["name"]
 
-    def create_pptx_bytes(self, slides_data):
-        prs = Presentation()
-        prs.slide_width = Inches(13.333) 
-        prs.slide_height = Inches(7.5)
+# ==========================================
+# ⚙️ ДВИЖОК PPTX (VISUAL MASTERPIECE)
+# ==========================================
+class AdvancedPPTXBuilder:
+    def __init__(self):
+        self.theme = DesignTheme()
+        self.prs = Presentation()
+        self.prs.slide_width = Inches(13.333)
+        self.prs.slide_height = Inches(7.5)
 
-        for i, slide_def in enumerate(slides_data):
-            layout = prs.slide_layouts[6] # Blank
-            slide = prs.slides.add_slide(layout)
+    def add_decorative_elements(self, slide):
+        shape_type = random.choice([MSO_SHAPE.OVAL, MSO_SHAPE.RECTANGLE, MSO_SHAPE.TRIANGLE])
+        left = random.randint(0, 10000000)
+        top = random.randint(0, 5000000)
+        width = random.randint(2000000, 5000000)
+        height = random.randint(2000000, 5000000)
+        
+        shape = slide.shapes.add_shape(shape_type, left, top, width, height)
+        shape.fill.solid()
+        shape.fill.fore_color.rgb = self.theme.secondary_color
+        shape.line.fill.background()
+        try:
+            from lxml import etree
+            alpha_mod = etree.SubElement(shape._element.spPr.solidFill, '{http://schemas.openxmlformats.org/drawingml/2006/main}alpha')
+            alpha_mod.set('val', str(random.randint(10000, 30000)))
+        except: pass
+
+    def build_slide(self, data):
+        layout = self.prs.slide_layouts[6]
+        slide = self.prs.slides.add_slide(layout)
+        
+        bg = slide.background.fill
+        bg.solid()
+        bg.fore_color.rgb = self.theme.bg_color
+        
+        if data.get('type') not in ['title', 'quote']:
+            self.add_decorative_elements(slide)
+
+        # --- РЕНДЕРИНГ ПО ТИПУ СЛАЙДА ---
+        
+        if data['type'] == 'title':
+            tb = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(11.3), Inches(3))
+            tf = tb.text_frame
+            tf.word_wrap = True
+            p = tf.paragraphs[0]
+            p.alignment = PP_ALIGN.LEFT
+            r = p.add_run()
+            r.text = data['content'].get('text', data.get('head', ''))
+            r.font.size = Pt(80)
+            r.font.bold = True
+            r.font.name = self.theme.main_font
+            r.font.color.rgb = self.theme.accent_color
             
-            bg = slide.background.fill
-            bg.solid()
+            sb = slide.shapes.add_textbox(Inches(1), Inches(4.5), Inches(11.3), Inches(1))
+            sp = sb.text_frame.paragraphs[0]
+            sr = sp.add_run()
+            sr.text = data['content'].get('sub', '')
+            sr.font.size = Pt(24)
+            sr.font.color.rgb = self.theme.text_color
+            sr.font.italic = True
+
+        elif data['type'] == 'intro':
+            hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
+            hp = hb.text_frame.paragraphs[0]
+            hr = hp.add_run()
+            hr.text = data.get('head', 'Introduction')
+            hr.font.size = Pt(40)
+            hr.font.bold = True
+            hr.font.color.rgb = self.theme.accent_color
             
-            is_title = (slide_def['type'] == 'title')
-            is_quote = (slide_def['type'] == 'quote')
-            is_two_col = (slide_def['type'] == 'two_col')
+            bb = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(12), Inches(5))
+            bp = bb.text_frame.paragraphs[0]
+            br = bp.add_run()
+            br.text = data['content'].get('body', '')
+            br.font.size = Pt(28)
+            br.font.color.rgb = self.theme.text_color
+            br.line_spacing = 1.5
+
+        elif data['type'] == 'stats':
+            hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
+            hp = hb.text_frame.paragraphs[0]
+            hr = hp.add_run()
+            hr.text = data.get('head', 'Key Metrics')
+            hr.font.size = Pt(40)
+            hr.font.bold = True
+            hr.font.color.rgb = self.theme.accent_color
             
-            # Выбор фона и цветов текста
-            if is_title or is_quote:
-                bg.fore_color.rgb = self.colors["primary"]
-                txt_col = self.colors["white"]
-                acc_col = self.colors["accent"]
-            elif is_two_col:
-                bg.fore_color.rgb = self.colors["bg_light"]
-                txt_col = self.colors["text_main"]
-                acc_col = self.colors["primary"]
-            else:
-                bg.fore_color.rgb = self.colors["bg_light"]
-                txt_col = self.colors["text_main"]
-                acc_col = self.colors["primary"]
-
-            # --- РЕНДЕРИНГ СЛАЙДА ---
+            positions = [(0.5, 2.0), (4.8, 2.0), (9.1, 2.0)]
+            keys = [('stat_1_val', 'stat_1_label'), ('stat_2_val', 'stat_2_label'), ('stat_3_val', 'stat_3_label')]
             
-            if is_title:
-                # Декоративная линия сверху
-                line_top = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), Inches(13.333), Inches(0.2))
-                line_top.fill.solid()
-                line_top.fill.fore_color.rgb = self.colors["accent"]
-                line_top.line.fill.background()
-
-                tb = slide.shapes.add_textbox(Inches(1), Inches(2.5), Inches(11.3), Inches(2))
-                tf = tb.text_frame
-                p = tf.paragraphs[0]
-                p.alignment = PP_ALIGN.CENTER
-                r = p.add_run()
-                r.text = slide_def['text']
-                r.font.size = Pt(60)
-                r.font.bold = True
-                r.font.name = "Arial Black"
-                r.font.color.rgb = txt_col
+            for pos, key_pair in zip(positions, keys):
+                val_key, lbl_key = key_pair
                 
-                sb = slide.shapes.add_textbox(Inches(1), Inches(4.5), Inches(11.3), Inches(1))
-                sp = sb.text_frame.paragraphs[0]
-                sp.alignment = PP_ALIGN.CENTER
-                sr = sp.add_run()
-                sr.text = slide_def.get('sub', '')
-                sr.font.size = Pt(24)
-                sr.font.color.rgb = acc_col
-
-            elif is_quote:
-                qb = slide.shapes.add_textbox(Inches(2), Inches(2.5), Inches(9.3), Inches(3))
-                qtf = qb.text_frame
-                qp = qtf.paragraphs[0]
-                qp.alignment = PP_ALIGN.CENTER
-                qr = qp.add_run()
-                qr.text = slide_def['text']
-                qr.font.size = Pt(36)
-                qr.font.italic = True
-                qr.font.name = "Georgia"
-                qr.font.color.rgb = txt_col
+                vb = slide.shapes.add_textbox(Inches(pos[0]), Inches(pos[1]), Inches(4), Inches(1.5))
+                vp = vb.text_frame.paragraphs[0]
+                vp.alignment = PP_ALIGN.CENTER
+                vr = vp.add_run()
+                vr.text = str(data['content'].get(val_key, 'N/A'))
+                vr.font.size = Pt(60)
+                vr.font.bold = True
+                vr.font.color.rgb = self.theme.secondary_color
                 
-                ab = slide.shapes.add_textbox(Inches(2), Inches(5.5), Inches(9.3), Inches(1))
-                ap = ab.text_frame.paragraphs[0]
-                ap.alignment = PP_ALIGN.RIGHT
-                ar = ap.add_run()
-                ar.text = f"— {slide_def.get('author', '')}"
-                ar.font.size = Pt(20)
-                ar.font.bold = True
-                ar.font.color.rgb = acc_col
+                lb = slide.shapes.add_textbox(Inches(pos[0]), Inches(pos[1]+1.5), Inches(4), Inches(1))
+                lp = lb.text_frame.paragraphs[0]
+                lp.alignment = PP_ALIGN.CENTER
+                lr = lp.add_run()
+                lr.text = str(data['content'].get(lbl_key, ''))
+                lr.font.size = Pt(20)
+                lr.font.color.rgb = self.theme.text_color
 
-            elif is_two_col:
-                # Заголовок
-                hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12.3), Inches(1))
-                htf = hb.text_frame
-                hp = htf.paragraphs[0]
-                hr = hp.add_run()
-                hr.text = slide_def['head']
-                hr.font.size = Pt(36)
-                hr.font.bold = True
-                hr.font.color.rgb = acc_col
+        elif data['type'] == 'comparison':
+            hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
+            hp = hb.text_frame.paragraphs[0]
+            hr = hp.add_run()
+            hr.text = data.get('head', 'Analysis')
+            hr.font.size = Pt(40)
+            hr.font.bold = True
+            hr.font.color.rgb = self.theme.accent_color
+            
+            l_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.5), Inches(1.5), Inches(6), Inches(5.5))
+            l_box.fill.solid(); l_box.fill.fore_color.rgb = RGBColor(0xFFFFFF); l_box.shadow.inherit = False
+            lt_head = l_box.text_frame.paragraphs[0]
+            lt_head.text = data['content'].get('left_title', 'Pros')
+            lt_head.font.size = Pt(24); lt_head.font.bold = True; lt_head.font.color.rgb = RGBColor(0x2E, 0x7D, 0x32)
+            for item in data['content'].get('left_items', []):
+                para = l_box.text_frame.add_paragraph()
+                para.text = f"✓ {item}"
+                para.font.size = Pt(18); para.space_after = Pt(10); para.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
 
-                # Левая колонка
-                lb_box = slide.shapes.add_textbox(Inches(0.5), Inches(1.8), Inches(6), Inches(5))
-                ltf = lb_box.text_frame
-                lp_head = ltf.paragraphs[0]
-                lr_head = lp_head.add_run()
-                lr_head.text = slide_def['left_title']
-                lr_head.font.size = Pt(24)
-                lr_head.font.bold = True
-                lr_head.font.color.rgb = self.colors["primary"]
+            r_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.8), Inches(1.5), Inches(6), Inches(5.5))
+            r_box.fill.solid(); r_box.fill.fore_color.rgb = RGBColor(0xFFFFFF); r_box.shadow.inherit = False
+            rt_head = r_box.text_frame.paragraphs[0]
+            rt_head.text = data['content'].get('right_title', 'Cons')
+            rt_head.font.size = Pt(24); rt_head.font.bold = True; rt_head.font.color.rgb = RGBColor(0xC6, 0x28, 0x28)
+            for item in data['content'].get('right_items', []):
+                para = r_box.text_frame.add_paragraph()
+                para.text = f"! {item}"
+                para.font.size = Pt(18); para.space_after = Pt(10); para.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
+
+        elif data['type'] == 'quote':
+            qb = slide.shapes.add_textbox(Inches(2), Inches(2.5), Inches(9.3), Inches(3))
+            qtf = qb.text_frame
+            qp = qtf.paragraphs[0]
+            qp.alignment = PP_ALIGN.CENTER
+            qr = qp.add_run()
+            qr.text = f"“{data['content'].get('text', '')}”"
+            qr.font.size = Pt(32); qr.font.italic = True; qr.font.name = "Georgia"; qr.font.color.rgb = self.theme.text_color
+            
+            ab = slide.shapes.add_textbox(Inches(2), Inches(5.5), Inches(9.3), Inches(1))
+            ap = ab.text_frame.paragraphs[0]
+            ap.alignment = PP_ALIGN.RIGHT
+            ar = ap.add_run()
+            ar.text = f"— {data['content'].get('author', 'Unknown')}"
+            ar.font.size = Pt(20); ar.font.bold = True; ar.font.color.rgb = self.theme.accent_color
+
+        elif data['type'] == 'timeline':
+            hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
+            hp = hb.text_frame.paragraphs[0]
+            hr = hp.add_run()
+            hr.text = data.get('head', 'Roadmap')
+            hr.font.size = Pt(40); hr.font.bold = True; hr.font.color.rgb = self.theme.accent_color
+            
+            line_y = Inches(4)
+            ln = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(1), line_y, Inches(11.3), Pt(5))
+            ln.fill.solid(); ln.fill.fore_color.rgb = self.theme.secondary_color; ln.line.fill.background()
+            
+            phases = [data['content'].get('phase_1', ''), data['content'].get('phase_2', ''), data['content'].get('phase_3', '')]
+            x_positions = [Inches(2), Inches(6), Inches(10)]
+            
+            for phase, x_pos in zip(phases, x_positions):
+                dot = slide.shapes.add_shape(MSO_SHAPE.OVAL, x_pos - Inches(0.2), line_y - Inches(0.2), Inches(0.4), Inches(0.4))
+                dot.fill.solid(); dot.fill.fore_color.rgb = self.theme.accent_color; dot.line.color.rgb = self.theme.bg_color; dot.line.width = Pt(3)
                 
-                for item in slide_def['left_items']:
-                    para = ltf.add_paragraph()
-                    para.space_after = Pt(10)
-                    r = para.add_run()
-                    r.text = f"✓ {item}"
-                    r.font.size = Pt(20)
-                    r.font.color.rgb = txt_col
+                tb_phase = slide.shapes.add_textbox(x_pos - Inches(1.5), line_y + Inches(0.5), Inches(3), Inches(1))
+                tp = tb_phase.text_frame.paragraphs[0]
+                tp.alignment = PP_ALIGN.CENTER
+                tr = tp.add_run()
+                tr.text = phase
+                tr.font.size = Pt(16); tr.font.bold = True; tr.font.color.rgb = self.theme.text_color
 
-                # Правая колонка
-                rb_box = slide.shapes.add_textbox(Inches(6.8), Inches(1.8), Inches(6), Inches(5))
-                rtf = rb_box.text_frame
-                rp_head = rtf.paragraphs[0]
-                rr_head = rp_head.add_run()
-                rr_head.text = slide_def['right_title']
-                rr_head.font.size = Pt(24)
-                rr_head.font.bold = True
-                rr_head.font.color.rgb = self.colors["accent"]
-                
-                for item in slide_def['right_items']:
-                    para = rtf.add_paragraph()
-                    para.space_after = Pt(10)
-                    r = para.add_run()
-                    r.text = f"! {item}"
-                    r.font.size = Pt(20)
-                    r.font.color.rgb = txt_col
+        else: # Default bullets
+            hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
+            hp = hb.text_frame.paragraphs[0]
+            hr = hp.add_run()
+            hr.text = data.get('head', 'Details')
+            hr.font.size = Pt(40); hr.font.bold = True; hr.font.color.rgb = self.theme.accent_color
+            
+            lb = slide.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(11.5), Inches(5))
+            ltf = lb.text_frame
+            ltf.word_wrap = True
+            
+            items = data['content'].get('items', [])
+            for j, item in enumerate(items):
+                para = ltf.paragraphs[j] if j < len(ltf.paragraphs) else ltf.add_paragraph()
+                para.space_after = Pt(20)
+                r = para.add_run()
+                r.text = f"● {item}"
+                r.font.size = Pt(26)
+                r.font.color.rgb = self.theme.text_color
 
-            else:
-                # Стандартные списки
-                hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12.3), Inches(1))
-                htf = hb.text_frame
-                hp = htf.paragraphs[0]
-                hr = hp.add_run()
-                hr.text = slide_def['head']
-                hr.font.size = Pt(36)
-                hr.font.bold = True
-                hr.font.color.rgb = acc_col
-                
-                line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.5), Inches(1.2), Inches(12.3), Pt(3))
-                line.fill.solid()
-                line.fill.fore_color.rgb = self.colors["primary"]
-                line.line.fill.background()
-
-                lb = slide.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(11.5), Inches(5))
-                ltf = lb.text_frame
-                ltf.word_wrap = True
-                
-                items = slide_def.get('items', [])
-                for j, item in enumerate(items):
-                    para = ltf.paragraphs[j] if j < len(ltf.paragraphs) else ltf.add_paragraph()
-                    para.space_after = Pt(15)
-                    r = para.add_run()
-                    r.text = f"• {item}"
-                    r.font.size = Pt(24)
-                    r.font.color.rgb = txt_col
-
+    def save_to_bytes(self):
         bytes_io = io.BytesIO()
-        prs.save(bytes_io)
+        self.prs.save(bytes_io)
         bytes_io.seek(0)
         return bytes_io.getvalue()
 
 # ==========================================
-# 🎨 ИНТЕРФЕЙС STREAMLIT (CHATGPT STYLE PRO)
+# 🎨 ИНТЕРФЕЙС STREAMLIT (NEXT GEN)
 # ==========================================
-st.set_page_config(page_title="AI Presenter Pro", page_icon="✨", layout="wide")
+st.set_page_config(page_title="Neural Deck Pro", page_icon="🧠", layout="wide")
 
-# Глобальные стили
 st.markdown("""
 <style>
-    /* Скрываем меню */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    
-    /* Фон страницы */
-    .stApp {
-        background-color: #f9fafb;
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+    .stApp { background-color: #0f172a; }
+    div[data-testid="stChatMessage"] { background-color: transparent; padding: 1rem 0; }
+    .user-msg-container {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white; padding: 15px 25px; border-radius: 20px 20px 0 20px;
+        max-width: 85%; margin-left: auto; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        animation: fadeInUp 0.3s ease-out;
     }
-    
-    /* Чат сообщения */
-    div[data-testid="stChatMessage"] {
-        padding: 10px 0;
+    .bot-msg-container {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #e2e8f0; padding: 20px; border-radius: 20px 20px 20px 0;
+        max-width: 85%; backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2); animation: fadeInLeft 0.3s ease-out;
     }
-    div[data-testid="stChatMessageContentAvatar"] {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
+    div[data-testid="stBottomBlockContainer"] {
+        background-color: #1e293b; border-top: 1px solid rgba(255,255,255,0.1); padding: 1rem;
     }
-    
-    /* Пузыри чата */
-    .user-bubble {
-        background-color: #ffffff;
-        color: #1e1b4b;
-        padding: 15px 20px;
-        border-radius: 20px 20px 0 20px;
-        max-width: 80%;
-        margin-left: auto;
-        display: inline-block;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        border: 1px solid #e5e7eb;
+    textarea[data-testid="stTextInput"] {
+        background-color: #0f172a !important; color: white !important;
+        border: 1px solid #334155 !important; border-radius: 12px !important;
     }
-    .bot-bubble {
-        background-color: #ffffff;
-        color: #374151;
-        padding: 15px 20px;
-        border-radius: 20px 20px 20px 0;
-        max-width: 80%;
-        border: 1px solid #e5e7eb;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-    }
-    
-    /* Кнопка скачивания */
     .stDownloadButton {
-        background-color: #FF6B35 !important;
-        color: white !important;
-        border: none !important;
-        padding: 10px 20px !important;
-        border-radius: 8px !important;
-        font-weight: bold !important;
-        cursor: pointer !important;
-        margin-top: 10px;
+        background: linear-gradient(90deg, #10b981 0%, #059669 100%) !important;
+        color: white !important; border: none !important; padding: 12px 24px !important;
+        border-radius: 8px !important; font-weight: bold !important;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important; transition: all 0.2s !important;
     }
-    .stDownloadButton:hover {
-        background-color: #e65c29 !important;
-    }
-    
-    /* Инпут */
-    div[data-testid="stTextInput"] input {
-        border-radius: 20px;
-        border: 1px solid #ddd;
-        padding: 10px 15px;
-    }
+    .stDownloadButton:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.6) !important; }
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeInLeft { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
 </style>
 """, unsafe_allow_html=True)
 
 if check_password():
-    # Боковое меню
     with st.sidebar:
-        st.header("⚙️ Настройки")
-        st.write("Статус системы:")
-        st.success("✅ Онлайн")
+        st.header("⚙️ Control Panel")
+        st.write("**Engine:** Google Gemini 1.5 Flash")
+        st.success("✅ Connected")
         st.divider()
-        st.caption("Версия 2.0 Pro Edition")
-        if st.button("🚪 Выйти"):
+        st.caption("System Status: Online")
+        if st.button("Logout"):
             st.session_state.authenticated = False
             st.rerun()
 
-    # Инициализация истории
     if 'messages' not in st.session_state:
         st.session_state.messages = []
-        welcome_msg = {
+        init_msg = {
             "role": "assistant", 
-            "content": "Привет! Я твой персональный AI-ассистент по созданию презентаций.\n\nНапиши тему (например: **'Маркетинг'** или **'История Древнего Рима'**), и я разработаю структуру и создам готовый файл PowerPoint."
+            "content": "Hello! I am your Neural Deck Architect powered by Google Gemini.\n\nPlease specify:\n1. **Topic** (e.g., Quantum Computing)\n2. **Number of Slides** (e.g., 8)\n\nI will ask the AI brain to write unique content and design it beautifully."
         }
-        st.session_state.messages.append(welcome_msg)
+        st.session_state.messages.append(init_msg)
 
-    # Отображение истории
     for message in st.session_state.messages:
-        role_class = "user-bubble" if message["role"] == "user" else "bot-bubble"
-        avatar = "👤" if message["role"] == "user" else "🤖"
+        role_class = "user-msg-container" if message["role"] == "user" else "bot-msg-container"
+        avatar = "👤" if message["role"] == "user" else "🧠"
         
         with st.chat_message(message["role"], avatar=avatar):
             st.markdown(f'<div class="{role_class}">{message["content"].replace(chr(10), "<br>")}</div>', unsafe_allow_html=True)
             
             if "file_name" in message:
                 st.download_button(
-                    label=f"📥 Скачать '{message['file_name']}'",
+                    label=f"📥 Download '{message['file_name']}'",
                     data=message["file_bytes"],
                     file_name=message["file_name"],
                     mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
                 )
 
-    # Поле ввода
-    prompt = st.chat_input("О чем сделать презентацию?")
+    prompt = st.chat_input("Enter Topic | Slides Count...")
 
     if prompt:
-        user_msg = {"role": "user", "content": prompt}
+        parts = prompt.split('|')
+        topic = parts[0].strip() if len(parts) > 0 else "General Overview"
+        slides_count_str = parts[1].strip() if len(parts) > 1 else "6"
+        
+        try:
+            slides_count = int(slides_count_str)
+        except:
+            slides_count = 6
+            
+        if slides_count < 3 or slides_count > 15:
+            slides_count = 6
+
+        user_display_text = f"**Topic:** {topic}\n**Slides:** {slides_count}"
+        
+        user_msg = {"role": "user", "content": user_display_text}
         st.session_state.messages.append(user_msg)
         with st.chat_message("user", avatar="👤"):
-            st.markdown(f'<div class="user-bubble">{prompt}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="user-msg-container">{user_display_text.replace(chr(10), "<br>")}</div>', unsafe_allow_html=True)
 
-        with st.chat_message("assistant", avatar="🤖"):
+        with st.chat_message("assistant", avatar="🧠"):
             status = st.empty()
-            status.spinner("🤖 Анализирую запрос...")
+            status.spinner("🧠 Asking Google Gemini for content structure...")
             
-            gen = PPTXGenerator()
-            slides_data = gen.generate_content(prompt)
+            # Вызываем реальный ИИ
+            ai_brain = AIBrain(GEMINI_API_KEY)
+            structure_data = ai_brain.generate_structure(topic, slides_count)
             
-            status.spinner("🎨 Генерирую дизайн слайдов...")
-            file_bytes = gen.create_pptx_bytes(slides_data)
+            # Если ИИ упал или вернул None, используем запасной вариант (Template Mode)
+            if structure_data is None:
+                status.info("Using fallback template due to AI error.")
+                # Простой фолбэк
+                structure_data = [
+                    {"type": "title", "head": topic, "content": {"text": topic.upper(), "sub": "Fallback Mode"}},
+                    {"type": "bullets", "head": "Overview", "content": {"items": ["Point 1", "Point 2", "Point 3"]}},
+                    {"type": "conclusion", "head": "Summary", "content": {"items": ["Done."]}}
+                ]
             
-            filename = f"Presentation_{prompt.replace(' ', '_')[:15]}.pptx"
+            status.spinner("🎨 Applying dynamic theming engine...")
             
-            summary_text = f"✅ Готово! Презентация по теме **«{prompt}»** создана.\n\n**Структура:**\n"
-            for idx, s in enumerate(slides_data):
-                title = s.get('text') or s.get('head')
-                summary_text += f"- Слайд {idx+1}: {title}\n"
+            builder = AdvancedPPTXBuilder()
+            for slide_def in structure_data:
+                builder.build_slide(slide_def)
+                
+            file_bytes = builder.save_to_bytes()
             
-            status.markdown(f'<div class="bot-bubble">{summary_text.replace(chr(10), "<br>")}</div>', unsafe_allow_html=True)
+            filename = f"{topic.replace(' ', '_')}_{builder.theme.style_name}.pptx"
+            
+            result_text = f"✅ **Generation Complete!**\n\nI used **Real AI (Google Gemini)** to write the content for **'{topic}'**.\nVisual Theme: **{builder.theme.style_name}**.\nTotal Slides: **{len(structure_data)}**.\n\nClick below to download:"
+            
+            status.markdown(f'<div class="bot-msg-container">{result_text.replace(chr(10), "<br>")}</div>', unsafe_allow_html=True)
             
             btn = st.download_button(
-                label=f"📥 Скачать '{filename}'",
+                label=f"📥 Get Your Smart Deck ({filename})",
                 data=file_bytes,
                 file_name=filename,
                 mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -423,7 +504,7 @@ if check_password():
             
             bot_msg = {
                 "role": "assistant",
-                "content": summary_text,
+                "content": result_text,
                 "file_bytes": file_bytes,
                 "file_name": filename
             }
