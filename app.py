@@ -8,7 +8,7 @@ import io
 import random
 
 # ==========================================
-# 🔐 ПАРОЛЬ (Можешь менять)
+# 🔐 ПАРОЛЬ
 # ==========================================
 ACCESS_CODE = "67676767" 
 
@@ -390,4 +390,97 @@ if check_password():
         st.write("**Режим:** Автономная база данных")
         st.success("✅ Система готова")
         st.divider()
-        st.caption("Для генерации интернет не требуется
+        st.caption("Для генерации интернет не требуется")
+        if st.button("Logout"):
+            st.session_state.authenticated = False
+            st.rerun()
+
+    if 'messages' not in st.session_state:
+        st.session_state.messages = []
+        init_msg = {
+            "role": "assistant", 
+            "content": "Привет! Я твой личный генератор презентаций.\n\nЯ знаю много интересного про:\n1. **Наполеона**\n2. **Космос**\n3. **Бизнес и технологии** (шаблоны)\n\nНапиши тему (например: *'Наполеон'* или *'Космос'*) и количество слайдов!"
+        }
+        st.session_state.messages.append(init_msg)
+
+    for message in st.session_state.messages:
+        role_class = "user-msg-container" if message["role"] == "user" else "bot-msg-container"
+        avatar = "👤" if message["role"] == "user" else "🧠"
+        
+        with st.chat_message(message["role"], avatar=avatar):
+            st.markdown(f'<div class="{role_class}">{message["content"].replace(chr(10), "<br>")}</div>', unsafe_allow_html=True)
+            
+            if "file_name" in message:
+                st.download_button(
+                    label=f"📥 Скачать '{message['file_name']}'",
+                    data=message["file_bytes"],
+                    file_name=message["file_name"],
+                    mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                )
+
+    prompt = st.chat_input("Введи тему | Количество слайдов...")
+
+    if prompt:
+        parts = prompt.split('|')
+        topic = parts[0].strip() if len(parts) > 0 else "Обзор"
+        slides_count_str = parts[1].strip() if len(parts) > 1 else "6"
+        
+        try:
+            slides_count = int(slides_count_str)
+        except:
+            slides_count = 6
+            
+        if slides_count < 3 or slides_count > 10:
+            slides_count = 6
+
+        user_display_text = f"**Тема:** {topic}\n**Слайдов:** {slides_count}"
+        
+        user_msg = {"role": "user", "content": user_display_text}
+        st.session_state.messages.append(user_msg)
+        with st.chat_message("user", avatar="👤"):
+            st.markdown(f'<div class="user-msg-container">{user_display_text.replace(chr(10), "<br>")}</div>', unsafe_allow_html=True)
+
+        with st.chat_message("assistant", avatar="🧠"):
+            status = st.empty()
+            status.spinner("🧠 Ищу информацию в базе знаний...")
+            
+            brain = LocalBrain()
+            structure_data = brain.get_content(topic)
+            
+            # Обрезаем или дополняем до нужного количества
+            if len(structure_data) > slides_count:
+                structure_data = structure_data[:slides_count]
+            elif len(structure_data) < slides_count:
+                # Добавляем пустые слайды если нужно больше
+                extra_needed = slides_count - len(structure_data)
+                for _ in range(extra_needed):
+                    structure_data.append({"type": "bullets", "head": "Дополнительно", "content": {"items": ["Больше деталей скоро..."]}})
+            
+            status.spinner("🎨 Создаю красивые слайды...")
+            
+            builder = AdvancedPPTXBuilder()
+            for slide_def in structure_data:
+                builder.build_slide(slide_def)
+                
+            file_bytes = builder.save_to_bytes()
+            
+            filename = f"{topic.replace(' ', '_')}_{builder.theme.style_name}.pptx"
+            
+            result_text = f"✅ **Готово!**\n\nСоздал презентацию по теме **«{topic}»**.\nДизайн: **{builder.theme.style_name}**.\nВсего слайдов: **{len(structure_data)}**.\n\nНажми кнопку ниже, чтобы скачать:"
+            
+            status.markdown(f'<div class="bot-msg-container">{result_text.replace(chr(10), "<br>")}</div>', unsafe_allow_html=True)
+            
+            btn = st.download_button(
+                label=f"📥 Скачать презентацию ({filename})",
+                data=file_bytes,
+                file_name=filename,
+                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            )
+            
+            bot_msg = {
+                "role": "assistant",
+                "content": result_text,
+                "file_bytes": file_bytes,
+                "file_name": filename
+            }
+            st.session_state.messages.append(bot_msg)
