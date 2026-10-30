@@ -13,9 +13,9 @@ import requests # Для запросов к AI
 # 🔐 НАСТРОЙКИ ДОСТУПА & GOOGLE GEMINI AI
 # ==========================================
 ACCESS_CODE = "67676767" 
-# ✅ ТВОЙ КЛЮЧ УЖЕ ВСТАВЛЕН СЮДА:
+# ✅ ТВОЙ НОВЫЙ КЛЮЧ УЖЕ ВСТАВЛЕН СЮДА:
 GEMINI_API_KEY = "AQ.Ab8RN6KgJcV5Qvk9QkB0WTa6ClMIRvzL3uMoK5JK0-BryDhANA"
-MODEL_NAME = "gemini-1.5-flash" # Самая быстрая и умная бесплатная модель
+MODEL_NAME = "gemini-1.5-flash" 
 
 def check_password():
     if 'authenticated' not in st.session_state:
@@ -66,14 +66,14 @@ def check_password():
     return True
 
 # ==========================================
-# 🤖 МОДУЛЬ ИНТЕЛЛЕКТУАЛЬНОГО ГЕНЕРАТОРА (GOOGLE BRAIN)
+# 🤖 МОДУЛЬ ИНТЕЛЛЕКТУАЛЬНОГО ГЕНЕРАТОРА (FIXED FOR NEW KEYS)
 # ==========================================
 class AIBrain:
     def __init__(self, api_key):
         self.api_key = api_key
         self.model_name = MODEL_NAME
-        # Используем официальный REST API endpoint
-        self.url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={api_key}"
+        # URL без параметра key=, так как он теперь в заголовках
+        self.url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent"
         
     def generate_structure(self, topic, num_slides):
         """Запрашивает у Gemini реальную структуру презентации."""
@@ -105,12 +105,18 @@ class AIBrain:
             }],
             "generationConfig": {
                 "temperature": 0.7,
-                "responseMimeType": "application/json" # Требование чистого JSON от Gemini
+                "responseMimeType": "application/json" 
             }
         }
 
         try:
-            response = requests.post(self.url, headers={"Content-Type": "application/json"}, json=payload, timeout=30)
+            # ИСПРАВЛЕНИЕ: Передаем ключ через заголовок x-goog-api-key
+            headers = {
+                "x-goog-api-key": self.api_key,
+                "Content-Type": "application/json"
+            }
+            
+            response = requests.post(self.url, headers=headers, json=payload, timeout=30)
             response.raise_for_status()
             result = response.json()
             
@@ -121,7 +127,7 @@ class AIBrain:
             clean_json = ai_content_str.strip()
             if clean_json.startswith("```"):
                 lines = clean_json.split('\n')
-                clean_json = '\n'.join(lines[1:-1]) # Удаляем первые и последние строки с ```
+                clean_json = '\n'.join(lines[1:-1]) 
                 
             data = json.loads(clean_json)
             
@@ -135,7 +141,7 @@ class AIBrain:
                 
         except Exception as e:
             st.warning(f"AI Error: {str(e)}. Falling back to template mode.")
-            return None # Вернем None, если ошибка сети или формата
+            return None
 
 # ==========================================
 # 🎨 ДИЗАЙН-СИСТЕМА (РАНДОМНАЯ)
@@ -147,7 +153,7 @@ class DesignTheme:
             {"name": "Corporate Clean", "bg": RGBColor(0xF0, 0xF4, 0xF8), "text": RGBColor(0x1A, 0x23, 0x7E), "accent": RGBColor(0x00, 0x7B, 0xFF), "secondary": RGBColor(0x6C, 0x75, 0x8A)},
             {"name": "Nature Organic", "bg": RGBColor(0xE8, 0xF5, 0xE9), "text": RGBColor(0x1B, 0x5E, 0x20), "accent": RGBColor(0x4C, 0xAF, 0x50), "secondary": RGBColor(0x81, 0xC7, 0x84)},
             {"name": "Sunset Warmth", "bg": RGBColor(0xFFF3E0), "text": RGBColor(0xBF, 0x36, 0x0C), "accent": RGBColor(0xFF, 0x6D, 0x00), "secondary": RGBColor(0xFF, 0xAB, 0x40)},
-            {"name": "Dark Luxury", "bg": RGBColor(0x12, 0x12, 0x12), "text": RGBColor(0xE0, 0xE0, 0xE0), "accent": RGBColor(0xD4, 0xAF, 0x37), "secondary": RGBColor(0x8B, 0x00, 0x00)} # Gold & Red
+            {"name": "Dark Luxury", "bg": RGBColor(0x12, 0x12, 0x12), "text": RGBColor(0xE0, 0xE0, 0xE0), "accent": RGBColor(0xD4, 0xAF, 0x37), "secondary": RGBColor(0x8B, 0x00, 0x00)}
         ]
         self.fonts = ["Arial Black", "Impact", "Segoe UI Bold", "Verdana", "Georgia"]
         
@@ -160,7 +166,7 @@ class DesignTheme:
         self.style_name = palette["name"]
 
 # ==========================================
-# ⚙️ ДВИЖОК PPTX (VISUAL MASTERPIECE)
+# ⚙️ ДВИЖОК PPTX (STABLE VERSION)
 # ==========================================
 class AdvancedPPTXBuilder:
     def __init__(self):
@@ -197,6 +203,10 @@ class AdvancedPPTXBuilder:
         if data.get('type') not in ['title', 'quote']:
             self.add_decorative_elements(slide)
 
+        # Безопасное получение данных из словаря (чтобы избежать KeyError)
+        content = data.get('content', {})
+        head_text = data.get('head', '')
+        
         # --- РЕНДЕРИНГ ПО ТИПУ СЛАЙДА ---
         
         if data['type'] == 'title':
@@ -206,7 +216,7 @@ class AdvancedPPTXBuilder:
             p = tf.paragraphs[0]
             p.alignment = PP_ALIGN.LEFT
             r = p.add_run()
-            r.text = data['content'].get('text', data.get('head', ''))
+            r.text = content.get('text', head_text)
             r.font.size = Pt(80)
             r.font.bold = True
             r.font.name = self.theme.main_font
@@ -215,7 +225,7 @@ class AdvancedPPTXBuilder:
             sb = slide.shapes.add_textbox(Inches(1), Inches(4.5), Inches(11.3), Inches(1))
             sp = sb.text_frame.paragraphs[0]
             sr = sp.add_run()
-            sr.text = data['content'].get('sub', '')
+            sr.text = content.get('sub', '')
             sr.font.size = Pt(24)
             sr.font.color.rgb = self.theme.text_color
             sr.font.italic = True
@@ -224,7 +234,7 @@ class AdvancedPPTXBuilder:
             hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
             hp = hb.text_frame.paragraphs[0]
             hr = hp.add_run()
-            hr.text = data.get('head', 'Introduction')
+            hr.text = head_text or "Introduction"
             hr.font.size = Pt(40)
             hr.font.bold = True
             hr.font.color.rgb = self.theme.accent_color
@@ -232,7 +242,7 @@ class AdvancedPPTXBuilder:
             bb = slide.shapes.add_textbox(Inches(0.5), Inches(1.5), Inches(12), Inches(5))
             bp = bb.text_frame.paragraphs[0]
             br = bp.add_run()
-            br.text = data['content'].get('body', '')
+            br.text = content.get('body', '')
             br.font.size = Pt(28)
             br.font.color.rgb = self.theme.text_color
             br.line_spacing = 1.5
@@ -241,7 +251,7 @@ class AdvancedPPTXBuilder:
             hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
             hp = hb.text_frame.paragraphs[0]
             hr = hp.add_run()
-            hr.text = data.get('head', 'Key Metrics')
+            hr.text = head_text or "Key Metrics"
             hr.font.size = Pt(40)
             hr.font.bold = True
             hr.font.color.rgb = self.theme.accent_color
@@ -256,7 +266,7 @@ class AdvancedPPTXBuilder:
                 vp = vb.text_frame.paragraphs[0]
                 vp.alignment = PP_ALIGN.CENTER
                 vr = vp.add_run()
-                vr.text = str(data['content'].get(val_key, 'N/A'))
+                vr.text = str(content.get(val_key, 'N/A'))
                 vr.font.size = Pt(60)
                 vr.font.bold = True
                 vr.font.color.rgb = self.theme.secondary_color
@@ -265,7 +275,7 @@ class AdvancedPPTXBuilder:
                 lp = lb.text_frame.paragraphs[0]
                 lp.alignment = PP_ALIGN.CENTER
                 lr = lp.add_run()
-                lr.text = str(data['content'].get(lbl_key, ''))
+                lr.text = str(content.get(lbl_key, ''))
                 lr.font.size = Pt(20)
                 lr.font.color.rgb = self.theme.text_color
 
@@ -273,7 +283,7 @@ class AdvancedPPTXBuilder:
             hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
             hp = hb.text_frame.paragraphs[0]
             hr = hp.add_run()
-            hr.text = data.get('head', 'Analysis')
+            hr.text = head_text or "Analysis"
             hr.font.size = Pt(40)
             hr.font.bold = True
             hr.font.color.rgb = self.theme.accent_color
@@ -281,9 +291,9 @@ class AdvancedPPTXBuilder:
             l_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.5), Inches(1.5), Inches(6), Inches(5.5))
             l_box.fill.solid(); l_box.fill.fore_color.rgb = RGBColor(0xFFFFFF); l_box.shadow.inherit = False
             lt_head = l_box.text_frame.paragraphs[0]
-            lt_head.text = data['content'].get('left_title', 'Pros')
+            lt_head.text = content.get('left_title', 'Pros')
             lt_head.font.size = Pt(24); lt_head.font.bold = True; lt_head.font.color.rgb = RGBColor(0x2E, 0x7D, 0x32)
-            for item in data['content'].get('left_items', []):
+            for item in content.get('left_items', []):
                 para = l_box.text_frame.add_paragraph()
                 para.text = f"✓ {item}"
                 para.font.size = Pt(18); para.space_after = Pt(10); para.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
@@ -291,9 +301,9 @@ class AdvancedPPTXBuilder:
             r_box = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(6.8), Inches(1.5), Inches(6), Inches(5.5))
             r_box.fill.solid(); r_box.fill.fore_color.rgb = RGBColor(0xFFFFFF); r_box.shadow.inherit = False
             rt_head = r_box.text_frame.paragraphs[0]
-            rt_head.text = data['content'].get('right_title', 'Cons')
+            rt_head.text = content.get('right_title', 'Cons')
             rt_head.font.size = Pt(24); rt_head.font.bold = True; rt_head.font.color.rgb = RGBColor(0xC6, 0x28, 0x28)
-            for item in data['content'].get('right_items', []):
+            for item in content.get('right_items', []):
                 para = r_box.text_frame.add_paragraph()
                 para.text = f"! {item}"
                 para.font.size = Pt(18); para.space_after = Pt(10); para.font.color.rgb = RGBColor(0x33, 0x33, 0x33)
@@ -304,28 +314,28 @@ class AdvancedPPTXBuilder:
             qp = qtf.paragraphs[0]
             qp.alignment = PP_ALIGN.CENTER
             qr = qp.add_run()
-            qr.text = f"“{data['content'].get('text', '')}”"
+            qr.text = f"“{content.get('text', '')}”"
             qr.font.size = Pt(32); qr.font.italic = True; qr.font.name = "Georgia"; qr.font.color.rgb = self.theme.text_color
             
             ab = slide.shapes.add_textbox(Inches(2), Inches(5.5), Inches(9.3), Inches(1))
             ap = ab.text_frame.paragraphs[0]
             ap.alignment = PP_ALIGN.RIGHT
             ar = ap.add_run()
-            ar.text = f"— {data['content'].get('author', 'Unknown')}"
+            ar.text = f"— {content.get('author', 'Unknown')}"
             ar.font.size = Pt(20); ar.font.bold = True; ar.font.color.rgb = self.theme.accent_color
 
         elif data['type'] == 'timeline':
             hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
             hp = hb.text_frame.paragraphs[0]
             hr = hp.add_run()
-            hr.text = data.get('head', 'Roadmap')
+            hr.text = head_text or "Roadmap"
             hr.font.size = Pt(40); hr.font.bold = True; hr.font.color.rgb = self.theme.accent_color
             
             line_y = Inches(4)
             ln = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(1), line_y, Inches(11.3), Pt(5))
             ln.fill.solid(); ln.fill.fore_color.rgb = self.theme.secondary_color; ln.line.fill.background()
             
-            phases = [data['content'].get('phase_1', ''), data['content'].get('phase_2', ''), data['content'].get('phase_3', '')]
+            phases = [content.get('phase_1', ''), content.get('phase_2', ''), content.get('phase_3', '')]
             x_positions = [Inches(2), Inches(6), Inches(10)]
             
             for phase, x_pos in zip(phases, x_positions):
@@ -343,14 +353,14 @@ class AdvancedPPTXBuilder:
             hb = slide.shapes.add_textbox(Inches(0.5), Inches(0.5), Inches(12), Inches(1))
             hp = hb.text_frame.paragraphs[0]
             hr = hp.add_run()
-            hr.text = data.get('head', 'Details')
+            hr.text = head_text or "Details"
             hr.font.size = Pt(40); hr.font.bold = True; hr.font.color.rgb = self.theme.accent_color
             
             lb = slide.shapes.add_textbox(Inches(0.8), Inches(1.8), Inches(11.5), Inches(5))
             ltf = lb.text_frame
             ltf.word_wrap = True
             
-            items = data['content'].get('items', [])
+            items = content.get('items', [])
             for j, item in enumerate(items):
                 para = ltf.paragraphs[j] if j < len(ltf.paragraphs) else ltf.add_paragraph()
                 para.space_after = Pt(20)
