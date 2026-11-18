@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Receiver Panel</title>
+    <style>
+        body { font-family: monospace; background: #121212; color: #00ff00; padding: 20px; }
+        pre { background: #1e1e1e; padding: 15px; border-radius: 5px; border: 1px solid #333; }
+    </style>
+</head>
+<body>
+    <h2>[+] Data Receiver Log</h2>
+    <pre id="log">Waiting for data...</pre>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('data')) {
+            document.getElementById('log').innerText = decodeURIComponent(urlParams.get('data'));
+        }
+    </script>
+</body>
+</html>
