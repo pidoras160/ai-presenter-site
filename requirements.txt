@@ -1,4 +1,0 @@
-streamlit
-    python-pptx
-    lxml
-    Pillow
